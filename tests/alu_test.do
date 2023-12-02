@@ -13,11 +13,10 @@ sim:/alu/op \
 sim:/alu/CCR \
 sim:/alu/result \
 sim:/alu/Bitset \
-sim:/alu/Bitset_mask \
 sim:/alu/Rcl \
 sim:/alu/Rcr
 force -freeze sim:/alu/CCR 111 0
-force -freeze sim:/alu/R1 10#110 0
+force -freeze sim:/alu/R1 10#30 0
 force -freeze sim:/alu/R2 10#30 0
 force -freeze sim:/alu/op 0000 0
 run
