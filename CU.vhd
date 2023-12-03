@@ -1,7 +1,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-entity Decoder is
+entity CU is
   generic (
     INPUT_WIDTH : integer := 6;
     OUTPUT_WIDTH : integer := 10
@@ -19,9 +19,9 @@ entity Decoder is
     signal9 : out std_logic;
     signal10 : out std_logic
   );
-end entity Decoder;
+end entity CU;
 
-architecture Behavioral of Decoder is
+architecture Behavioral of CU is
   signal temp_vector : std_logic_vector(OUTPUT_WIDTH-1 downto 0);
 begin
   process(input)
