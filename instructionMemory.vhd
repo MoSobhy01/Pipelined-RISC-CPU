@@ -26,7 +26,7 @@ BEGIN
             instrMem(i) <= (OTHERS => '0');
         END LOOP;
 
-        file_open(memfile, "instructionMem.txt", read_mode);
+        file_open(memfile, "code.txt", read_mode);
         FOR i IN 0 TO 2047 LOOP
             readline(memfile, line_buffer);
             read(line_buffer, data);
