@@ -3,21 +3,21 @@ use ieee.std_logic_1164.all;
 
 entity CU is
   generic (
-    INPUT_WIDTH : integer := 6;
-    OUTPUT_WIDTH : integer := 10
+    OUTPUT_WIDTH : integer := 14
   );
   port (
-    input : in std_logic_vector(INPUT_WIDTH-1 downto 0);
-    signal1 : out std_logic;
-    signal2 : out std_logic;
-    signal3 : out std_logic;
-    signal4 : out std_logic;
-    signal5 : out std_logic;
-    signal6 : out std_logic;
-    signal7 : out std_logic;
-    signal8 : out std_logic;
-    signal9 : out std_logic;
-    signal10 : out std_logic
+    input : in std_logic_vector(5 downto 0);
+    AluOp   : out std_logic_vector(3 downto 0);
+    ImmSrc   : out std_logic;
+    Branch   : out std_logic;
+    BranchIf0: out std_logic;
+    MemRead  : out std_logic;
+    MemWrite : out std_logic;
+    SpOp     : out std_logic;
+    protect  : out std_logic;
+    free     : out std_logic;
+    MemWb : out std_logic;
+    RegWrite  : out std_logic
   );
 end entity CU;
 
@@ -28,38 +28,39 @@ begin
   begin
     case input is
       when "000000" =>
-        temp_vector <= "1000000000";
+        temp_vector <= "00000000000000";
       when "000001" =>
-        temp_vector <= "0100000000";
+        temp_vector <= "10000000000001";
       when "000010" =>
-        temp_vector <= "0010000000";
+        temp_vector <= "00100000000000";
       when "000011" =>
-        temp_vector <= "0001000000";
+        temp_vector <= "00010000000000";
       when "000100" =>
-        temp_vector <= "0000100000";
+        temp_vector <= "00001000000000";
       when "000101" =>
-        temp_vector <= "0000010000";
+        temp_vector <= "00000100000000";
       when "000110" =>
-        temp_vector <= "0000001000";
+        temp_vector <= "00000010000000";
       when "000111" =>
-        temp_vector <= "0000000100";
+        temp_vector <= "00000001000000";
       when "001000" =>
-        temp_vector <= "0000000010";
+        temp_vector <= "00000000100000";
       when "001001" =>
-        temp_vector <= "0000000001";
+        temp_vector <= "00000000010000";
       when others =>
-        temp_vector <= "0000000000";
+        temp_vector <= "00000000000000";
     end case;
   end process;
 
-  signal1 <= temp_vector(0);
-  signal2 <= temp_vector(1);
-  signal3 <= temp_vector(2);
-  signal4 <= temp_vector(3);
-  signal5 <= temp_vector(4);
-  signal6 <= temp_vector(5);
-  signal7 <= temp_vector(6);
-  signal8 <= temp_vector(7);
-  signal9 <= temp_vector(8);
-  signal10 <= temp_vector(9);
+  AluOp    <= temp_vector(3 downto 0);
+  ImmSrc    <= temp_vector(4);
+  Branch    <= temp_vector(5);
+  BranchIf0 <= temp_vector(6);
+  MemRead   <= temp_vector(7);
+  MemWrite  <= temp_vector(8);
+  SpOp      <= temp_vector(9);
+  protect   <= temp_vector(10);
+  free      <= temp_vector(11);
+  MemWb  <= temp_vector(12);
+  RegWrite  <= temp_vector(13);
 end architecture Behavioral;

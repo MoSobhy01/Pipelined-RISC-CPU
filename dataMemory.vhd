@@ -4,10 +4,11 @@ USE IEEE.STD_LOGIC_1164.ALL;
 USE IEEE.NUMERIC_STD.ALL;
 ENTITY DataMemory IS
     PORT (
-        MemWrite : IN STD_LOGIC;
         MemRead : IN STD_LOGIC;
-	protectSig: in std_logic;
-	freeSig: in std_logic;
+        MemWrite : IN STD_LOGIC;
+        SpOp : IN STD_LOGIC;
+        protectSig: in std_logic;
+        freeSig: in std_logic;
         DataIn : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
         DataOut : OUT STD_LOGIC_VECTOR(31 DOWNTO 0);
         Addr : IN STD_LOGIC_VECTOR(19 DOWNTO 0)
