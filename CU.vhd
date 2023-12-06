@@ -3,7 +3,7 @@ use ieee.std_logic_1164.all;
 
 entity CU is
   generic (
-    OUTPUT_WIDTH : integer := 14
+    OUTPUT_WIDTH : integer := 16
   );
   port (
     input : in std_logic_vector(5 downto 0);
@@ -17,7 +17,9 @@ entity CU is
     protect  : out std_logic;
     free     : out std_logic;
     MemWb : out std_logic;
-    RegWrite  : out std_logic
+    RegWrite  : out std_logic;
+    PortWrite  : out std_logic;
+    PortWB  : out std_logic
   );
 end entity CU;
 
@@ -25,47 +27,48 @@ architecture Behavioral of CU is
   signal temp_vector : std_logic_vector(OUTPUT_WIDTH-1 downto 0);
 begin
   process(input)
+  
 
 -- -------------------------------------- Control Signals Table -----------------------------------------------
 
-  --   Instruction          | AluOp | ImmSrc | Branch | Branch zero | MemRead | MemWrite | SP-Op | Protect | Free | MemWB | RegWrite 
-  -- -----------------------|-------|--------|--------|-------------|---------|----------|-------|---------|------|-------|----------
-  -- NOP                    | 0000  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 0        
-  -- NOT Rdst               | 0001  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1        
-  -- NEG Rdst               | 0010  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1        
-  -- INC Rdst               | 0011  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1        
-  -- DEC Rdst               | 0100  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1        
-  -- OUT Rdst               | 0000  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 0        
-  -- IN Rdst                | 0000  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 0        
-
-  -- SWAP Rsrc, Rdst        | 0000  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1        
-  -- ADD Rdst, Rsrc1, Rsrc2 | 0110  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1        
-  -- ADDI Rdst, Rsrc1, Imm  | 0111  | 1      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1        
-  -- SUB Rdst, Rsrc1, Rsrc2 | 1000  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1        
-  -- AND Rdst, Rsrc1, Rsrc2 | 1001  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1        
-  -- OR Rdst, Rsrc1, Rsrc2  | 1010  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1        
-  -- XOR Rdst, Rsrc1, Rsrc2 | 1011  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1        
-  -- CMP Rsrc1, Rsrc2       | 1100  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1        
-  -- BITSET Rdst, Imm       | 1101  | 1      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1        
-  -- RCL Rsrc, Imm          | 1110  | 1      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1        
-  -- RCR Rsrc, Imm          | 1111  | 1      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1        
-
-  -- PUSH Rdst              | 0000  | 0      | 0      | 0           | 0       | 1        | 1     | 0       | 0    | 0     | 0        
-  -- POP Rdst               | 0000  | 0      | 0      | 0           | 1       | 0        | 1     | 0       | 0    | 1     | 1        
-  -- LDM Rdst, Imm          | 0101  | 1      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1        
-  -- LDD Rdst, EA           | 0000  | 1      | 0      | 0           | 1       | 0        | 0     | 0       | 0    | 1     | 1        
-  -- STD Rsrc, EA           | 0000  | 1      | 0      | 0           | 0       | 1        | 0     | 0       | 0    | 0     | 0        
-  -- PROTECT Rsrc           | 0000  | 0      | 0      | 0           | 0       | 1        | 0     | 1       | 0    | 0     | 0        
-  -- FREE Rsrc              | 0000  | 0      | 0      | 0           | 0       | 1        | 0     | 0       | 1    | 0     | 0        
-
-  -- JZ Rdst                | 0000  | 0      | 0      | 1           | 0       | 0        | 0     | 0       | 0    | 0     | 0        
-  -- JMP Rdst               | 0000  | 0      | 1      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 0        
-  -- CALL Rdst              | 0000  | 0      | 1      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 0        
-  -- RET                    | 0000  | 0      | 1      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 0        
-  -- RTI                    | 0000  | 0      | 1      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 0        
-
-  -- Reset                  | 0000  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 0        
-  -- Interrupt              | 0000  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 0        
+  --   Instruction          | AluOp | ImmSrc | Branch | Branch zero | MemRead | MemWrite | SP-Op | Protect | Free | MemWB | RegWrite| PortWrite | PortWB 
+  -- -----------------------|-------|--------|--------|-------------|---------|----------|-------|---------|------|-------|---------|-----------|----------
+  -- NOP                    | 0000  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 0       | 0         | 0        
+  -- NOT Rdst               | 0001  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1       | 0         | 0        
+  -- NEG Rdst               | 0010  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1       | 0         | 0       
+  -- INC Rdst               | 0011  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1       | 0         | 0        
+  -- DEC Rdst               | 0100  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1       | 0         | 0        
+  -- OUT Rdst               | 0000  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 0       | 1         | 0        
+  -- IN Rdst                | 0000  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1       | 0         | 1        
+    
+  -- SWAP Rsrc, Rdst        | 0000  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1       | 0         | 0        
+  -- ADD Rdst, Rsrc1, Rsrc2 | 0110  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1       | 0         | 0        
+  -- ADDI Rdst, Rsrc1, Imm  | 0111  | 1      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1       | 0         | 0        
+  -- SUB Rdst, Rsrc1, Rsrc2 | 1000  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1       | 0         | 0        
+  -- AND Rdst, Rsrc1, Rsrc2 | 1001  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1       | 0         | 0        
+  -- OR Rdst, Rsrc1, Rsrc2  | 1010  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1       | 0         | 0        
+  -- XOR Rdst, Rsrc1, Rsrc2 | 1011  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1       | 0         | 0        
+  -- CMP Rsrc1, Rsrc2       | 1100  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1       | 0         | 0        
+  -- BITSET Rdst, Imm       | 1101  | 1      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1       | 0         | 0        
+  -- RCL Rsrc, Imm          | 1110  | 1      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1       | 0         | 0        
+  -- RCR Rsrc, Imm          | 1111  | 1      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1       | 0         | 0        
+    
+  -- PUSH Rdst              | 0000  | 0      | 0      | 0           | 0       | 1        | 1     | 0       | 0    | 0     | 0       | 0         | 0        
+  -- POP Rdst               | 0000  | 0      | 0      | 0           | 1       | 0        | 1     | 0       | 0    | 1     | 1       | 0         | 0        
+  -- LDM Rdst, Imm          | 0101  | 1      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 1       | 0         | 0        
+  -- LDD Rdst, EA           | 0000  | 1      | 0      | 0           | 1       | 0        | 0     | 0       | 0    | 1     | 1       | 0         | 0        
+  -- STD Rsrc, EA           | 0000  | 1      | 0      | 0           | 0       | 1        | 0     | 0       | 0    | 0     | 0       | 0         | 0        
+  -- PROTECT Rsrc           | 0000  | 0      | 0      | 0           | 0       | 1        | 0     | 1       | 0    | 0     | 0       | 0         | 0        
+  -- FREE Rsrc              | 0000  | 0      | 0      | 0           | 0       | 1        | 0     | 0       | 1    | 0     | 0       | 0         | 0        
+    
+  -- JZ Rdst                | 0000  | 0      | 0      | 1           | 0       | 0        | 0     | 0       | 0    | 0     | 0       | 0         | 0        
+  -- JMP Rdst               | 0000  | 0      | 1      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 0       | 0         | 0        
+  -- CALL Rdst              | 0000  | 0      | 1      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 0       | 0         | 0        
+  -- RET                    | 0000  | 0      | 1      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 0       | 0         | 0        
+  -- RTI                    | 0000  | 0      | 1      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 0       | 0         | 0        
+    
+  -- Reset                  | 0000  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 0       | 0         | 0        
+  -- Interrupt              | 0000  | 0      | 0      | 0           | 0       | 0        | 0     | 0       | 0    | 0     | 0       | 0         | 0        
 
 
 -- ---------------------------------- INSTRUCTIONS CS VECTORS ------------------------------------------------ 
@@ -75,50 +78,47 @@ begin
 --  AluOp | ImmSrc | Branch | Branch zero | MemRead | MemWrite | SP-Op | Protect | Free | MemWB | RegWrite
 
   -- ALU Operations
-  variable NOT_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00010000000001";
-  variable NEG_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00100000000001";
-  variable DEC_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "01000000000001";
-  variable INC_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00110000000001";
-  variable OR_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0)  := "10100000000001";
-  variable ADD_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "01110000000001";
-  variable ADDI_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0):= "01111000000001";
-  variable SUB_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "10000000000001";
-  variable AND_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "10010000000001";
-  variable XOR_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "10110000000001";
-  variable CMP_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "10000000000000";
-  variable RCL_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "11101000000001";
-  variable RCR_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "11111000000001";
-  variable BITSET_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "11011000000001";
+  variable NOT_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0001000000000100";
+  variable NEG_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0010000000000100";
+  variable DEC_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0100000000000100";
+  variable INC_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0011000000000100";
+  variable OR_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0)  := "1010000000000100";
+  variable ADD_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0111000000000100";
+  variable ADDI_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0):= "0111100000000100";
+  variable SUB_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "1000000000000100";
+  variable AND_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "1001000000000100";
+  variable XOR_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "1011000000000100";
+  variable CMP_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "1000000000000000";
+  variable RCL_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "1110100000000100";
+  variable RCR_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "1111100000000100";
+  variable BITSET_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "1101100000000100";
   
   -- SP Operations
-  variable PUSH_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0):= "00000000110000";
-  variable POP_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000001010011";
+  variable PUSH_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0):= "0000000011000000";
+  variable POP_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000000101001100";
 
   -- Memory Operations
-  variable LDM_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "01011000000001";
-  variable LDD_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00001001000011";
-  variable STD_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00001000100000";
-  variable FREE_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000000100100";
-  variable PROTECT_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000000101000";
+  variable LDM_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0101100000000100";
+  variable LDD_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000100100001100";
+  variable STD_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000100010000000";
+  variable FREE_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000000010010000";
+  variable PROTECT_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000000010100000";
 
   -- Branch Opertions
-  variable JMP_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000100000000";
-  variable JZ_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000010000000";
+  variable JMP_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000010000000000";
+  variable JZ_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000001000000000";
 
   --**************************** NOT SURE ENOUGH ********************************
   -- CALL = PUSH + JMP
-  variable CALL_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000100110000";
-  variable RET_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000101010000";
+  variable CALL_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000010011000000";
+  variable RET_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000010101000000";
   -- RTI = 2 x POP 
-  variable RTI_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000101010000";
+  variable RTI_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000010101000000";
 
-  
-  --To Be Determined...
-  variable OUT_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000000000000";
-  variable IN_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000000000000";
-  variable SWAP_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000000000000";
-  variable RESET_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000000000000";
-  variable INTERRUPT_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000000000000";
+  variable OUT_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000000000000010";
+  variable IN_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000000000000101";
+
+  variable SWAP_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000000000000000";
 
   -- |------------------------------------------ DECODING ------------------------------------------------|
   begin
@@ -183,25 +183,23 @@ begin
         temp_vector <= RET_INST; 
       when "110100" =>
         temp_vector <= RTI_INST;
-      when "110101" =>
-        temp_vector <= RESET_INST;
-      when "110110" =>
-        temp_vector <= INTERRUPT_INST;
       when others =>
-        temp_vector <= "00000000000000";
+        temp_vector <= NOP_INST;
   end case;
 
   end process;
 
-  AluOp    <= temp_vector(13 downto 10);
-  ImmSrc    <= temp_vector(9);
-  Branch    <= temp_vector(8);
-  BranchIf0 <= temp_vector(7);
-  MemRead   <= temp_vector(6);
-  MemWrite  <= temp_vector(5);
-  SpOp      <= temp_vector(4);
-  protect   <= temp_vector(3);
-  free      <= temp_vector(2);
-  MemWb  <= temp_vector(1);
-  RegWrite  <= temp_vector(0);
+  AluOp    <= temp_vector(15 downto 12);
+  ImmSrc    <= temp_vector(11);
+  Branch    <= temp_vector(10);
+  BranchIf0 <= temp_vector(9);
+  MemRead   <= temp_vector(8);
+  MemWrite  <= temp_vector(7);
+  SpOp      <= temp_vector(6);
+  protect   <= temp_vector(5);
+  free      <= temp_vector(4);
+  MemWb  <= temp_vector(3);
+  RegWrite  <= temp_vector(2);
+  PortWrite  <= temp_vector(1);
+  PortWB  <= temp_vector(0);
 end architecture Behavioral;

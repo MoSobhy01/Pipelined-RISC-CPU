@@ -22,7 +22,7 @@ ARCHITECTURE Behavioral OF DataMemory IS
     TYPE MemoryArray IS ARRAY (0 TO 2047) OF STD_LOGIC_VECTOR(15 DOWNTO 0);
     SIGNAL Memo : MemoryArray := (others => (others => '0'));
     TYPE ProtectArray IS ARRAY (0 TO 2047) OF STD_LOGIC;
-    SIGNAL protect : ProtectArray;
+    SIGNAL protect : ProtectArray := (others => '0');
 
 BEGIN
     DataOut(31 DOWNTO 16) <= (OTHERS => '0') WHEN MemRead = '0' ELSE
