@@ -1,12 +1,12 @@
 LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.ALL;
 USE IEEE.NUMERIC_STD.ALL;
-USE std.TEXTIO.ALL; 
-use IEEE.std_logic_textio.all;
+USE std.TEXTIO.ALL;
+USE IEEE.std_logic_textio.ALL;
 
 ENTITY InstructionMemory IS
     PORT (
-        rst: IN STD_LOGIC;
+        rst : IN STD_LOGIC;
         pc : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
         instr : OUT STD_LOGIC_VECTOR(15 DOWNTO 0)
     );
@@ -27,7 +27,7 @@ BEGIN
         FILE memfile : text;
         VARIABLE i : INTEGER := 0;
     BEGIN
-        if rst = '1' then
+        IF rst = '1' THEN
             FOR i IN 0 TO 2047 LOOP
                 instrMem(i) <= (OTHERS => '0');
             END LOOP;
@@ -40,7 +40,7 @@ BEGIN
                 i := i + 1;
             END LOOP;
             file_close(memfile);
-        end if;
+        END IF;
     END PROCESS;
 
 END Behavioral;
