@@ -1,3 +1,6 @@
+const fs = require('fs');
+const BITS_3 = '000';
+
 // No operand instructions
 const OneZeroOperand = {
   NOP: '000000',
@@ -41,7 +44,7 @@ const MemoryInstructions = {
 };
 
 // registers
-const Registers = {
+const Regs = {
   R0: '000',
   R1: '001',
   R2: '010',
@@ -53,7 +56,6 @@ const Registers = {
 };
 
 // Open the input file
-const fs = require('fs');
 const inputFilePath = 'code.asm';
 const inputFile = fs.readFileSync(inputFilePath, 'utf8').split('\n');
 
@@ -64,79 +66,69 @@ const InstructionMemory = fs.createWriteStream(outputFilePath);
 let imm = '';
 
 for (const line of inputFile) {
+  if (line.startsWith('#')) continue;
   const instructionArray = line.trim().split(/\s+/);
   const inst = instructionArray[0].toUpperCase();
-  const operands = instructionArray.slice(1).join(',').toUpperCase();
+  const operands = instructionArray.slice(1).join('').toUpperCase();
 
   let instBts = '';
 
   if (OneZeroOperand[inst]) {
     instBts += OneZeroOperand[inst];
     if (inst === 'NOP' || inst === 'RET' || inst === 'RTI') {
-      instBts += '0000000000';
+      instBts += BITS_3;
     } else {
-      instBts += Registers[operands];
-      instBts += '0000000';
+      instBts += Regs[operands];
     }
+    instBts += BITS_3 + BITS_3;
   } else if (TwoOperands[inst]) {
     instBts += TwoOperands[inst];
     const [op1, op2, op3] = operands.split(',').map((op) => op.trim());
     if (inst === 'SWAP') {
-      instBts += Registers[op2];
-      instBts += Registers[op1];
-      instBts += '0000';
+      instBts += Regs[op2] + Regs[op1];
+      instBts += BITS_3;
     } else if (inst === 'BITSET') {
-      instBts += Registers[op1];
-      instBts += '0000001';
+      instBts += Regs[op1] + BITS_3 + BITS_3;
       imm = op2;
     } else if (inst === 'CMP') {
-      instBts += '000';
-      instBts += Registers[op1];
-      instBts += Registers[op2];
-      instBts += '0';
+      instBts += BITS_3 + Regs[op1] + Regs[op2];
     } else if (inst === 'RCL' || inst === 'RCR') {
-      instBts += '000';
-      instBts += Registers[op1];
-      instBts += '0001';
+      instBts += BITS_3 + Regs[op1] + BITS_3;
       imm = op2;
     } else {
-      instBts += Registers[op1];
-      instBts += Registers[op2];
-      instBts += Registers[op3];
-      instBts += '0';
+      instBts += Regs[op1] + Regs[op2] + Regs[op3];
     }
   } else if (MemoryInstructions[inst]) {
     instBts += MemoryInstructions[inst];
     const [op1, op2] = operands.split(',').map((op) => op.trim());
     if (inst === 'POP') {
-      instBts += Registers[op1];
-      instBts += '0000000';
+      instBts += Regs[op1] + BITS_3;
     } else if (inst === 'LDM' || inst === 'LDD') {
-      instBts += Registers[op1];
-      instBts += '0000001';
+      instBts += Regs[op1] + BITS_3;
       imm = op2;
     } else if (inst === 'STD') {
-      instBts += '000';
-      instBts += Registers[op1];
-      instBts += '0000001';
+      instBts += BITS_3 + Regs[op1] + BITS_3;
       imm = op2;
     } else {
-      instBts += '000';
-      instBts += Registers[op1];
-      instBts += '0000';
+      instBts += BITS_3 + Regs[op1];
     }
-  }
-  if (imm) {
-    if (/^0x/i.test(imm)) {
-      instBts += parseInt(imm, 16).toString(2).padStart(16, '0');
-    } else {
-      instBts += parseInt(imm).toString(2).padStart(16, '0');
-    }
-    imm = '';
+    instBts += BITS_3;
   }
 
-  if (instBts !== '') {
+  if (instBts) {
+    instBts += imm ? '1' : '0';
     InstructionMemory.write(instBts + '\n');
+  }
+
+  if (imm) {
+    let immVal = '';
+    if (/^0x/i.test(imm)) {
+      immVal += parseInt(imm, 16).toString(2).padStart(16, '0');
+    } else {
+      immVal += parseInt(imm).toString(2).padStart(16, '0');
+    }
+    InstructionMemory.write(immVal + '\n');
+    imm = '';
   }
 }
 
