@@ -66,33 +66,69 @@ const InstructionMemory = fs.createWriteStream(outputFilePath);
 let imm = '';
 
 for (const line of inputFile) {
-  if (line.startsWith('#')) continue;
+  if (line.startsWith(';') || line.trim() === '') continue;
   const instructionArray = line.trim().split(/\s+/);
   const inst = instructionArray[0].toUpperCase();
-  const operands = instructionArray.slice(1).join('').toUpperCase();
+  const operands = instructionArray
+    .slice(1)
+    .join('')
+    .split(';')[0]
+    .toUpperCase();
 
   let instBts = '';
 
   if (OneZeroOperand[inst]) {
     instBts += OneZeroOperand[inst];
+
     if (inst === 'NOP' || inst === 'RET' || inst === 'RTI') {
       instBts += BITS_3;
     } else {
+      if (!Regs[operands]) {
+        console.log(`Syntax Error neer ${inst}`);
+        InstructionMemory.destroy();
+        InstructionMemory.end();
+        return;
+      }
       instBts += Regs[operands];
     }
     instBts += BITS_3 + BITS_3;
   } else if (TwoOperands[inst]) {
     instBts += TwoOperands[inst];
     const [op1, op2, op3] = operands.split(',').map((op) => op.trim());
+    if (
+      !Regs[op1] ||
+      !op2 ||
+      !(!isNaN(Number(op2)) || Regs[op2]) ||
+      (op3 && !Regs[op3])
+    ) {
+      console.log(`Syntax Error neer ${inst}`);
+      return;
+    }
     if (inst === 'SWAP') {
+      if (op3) {
+        console.log(`Syntax Error neer ${inst}, takes only two operands`);
+        return;
+      }
       instBts += Regs[op2] + Regs[op1];
       instBts += BITS_3;
     } else if (inst === 'BITSET') {
+      if (op3) {
+        console.log(`Syntax Error neer ${inst}, takes only two operands`);
+        return;
+      }
       instBts += Regs[op1] + BITS_3 + BITS_3;
       imm = op2;
     } else if (inst === 'CMP') {
+      if (op3) {
+        console.log(`Syntax Error neer ${inst}, takes only two operands`);
+        return;
+      }
       instBts += BITS_3 + Regs[op1] + Regs[op2];
     } else if (inst === 'RCL' || inst === 'RCR') {
+      if (op3) {
+        console.log(`Syntax Error neer ${inst}, takes only two operands`);
+        return;
+      }
       instBts += BITS_3 + Regs[op1] + BITS_3;
       imm = op2;
     } else {
@@ -101,6 +137,12 @@ for (const line of inputFile) {
   } else if (MemoryInstructions[inst]) {
     instBts += MemoryInstructions[inst];
     const [op1, op2] = operands.split(',').map((op) => op.trim());
+    if (!Regs[op1] || isNaN(Number(op2))) {
+      console.log(`Syntax Error neer ${inst}`);
+      InstructionMemory.destroy();
+      InstructionMemory.end();
+      return;
+    }
     if (inst === 'POP') {
       instBts += Regs[op1] + BITS_3;
     } else if (inst === 'LDM' || inst === 'LDD') {
@@ -115,11 +157,14 @@ for (const line of inputFile) {
     instBts += BITS_3;
   }
 
-  if (instBts) {
-    instBts += imm ? '1' : '0';
-    InstructionMemory.write(instBts + '\n');
+  if (!instBts) {
+    console.log(`unknown instruction ${inst}`);
+    InstructionMemory.destroy();
+    InstructionMemory.end();
+    return;
   }
-
+  instBts += imm ? '1' : '0';
+  InstructionMemory.write(instBts + '\n');
   if (imm) {
     let immVal = '';
     if (/^0x/i.test(imm)) {

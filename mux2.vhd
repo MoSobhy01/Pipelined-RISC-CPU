@@ -1,20 +1,20 @@
-library ieee;
-use ieee.std_logic_1164.all;
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
 
-entity mux2 is
-generic(n : integer := 32);
-port(
-	inA: in std_logic_vector(n-1 downto 0);
-	inB: in std_logic_vector(n-1 downto 0);
-	S: in std_logic;
-	F_mux: out std_logic_vector(n-1 downto 0));
-end mux2;
+ENTITY mux2 IS
+	GENERIC (n : INTEGER := 32);
+	PORT (
+		inA : IN STD_LOGIC_VECTOR(n - 1 DOWNTO 0);
+		inB : IN STD_LOGIC_VECTOR(n - 1 DOWNTO 0);
+		S : IN STD_LOGIC;
+		F_mux : OUT STD_LOGIC_VECTOR(n - 1 DOWNTO 0));
+END mux2;
 
-architecture archMux2 of mux2 is
-Begin
-with S select F_mux <=
-	inA 	 when '0',
-	inB	 when '1',
-	(others => 'X') when others;
+ARCHITECTURE archMux2 OF mux2 IS
+BEGIN
+	WITH S SELECT F_mux <=
+		inA WHEN '0',
+		inB WHEN '1',
+		(OTHERS => 'X') WHEN OTHERS;
 
-end archMux2;
+END archMux2;
