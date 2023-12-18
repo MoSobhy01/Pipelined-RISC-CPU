@@ -81,56 +81,65 @@ for (const line of inputFile) {
     instBts += OneZeroOperand[inst];
 
     if (inst === 'NOP' || inst === 'RET' || inst === 'RTI') {
-      instBts += BITS_3;
+      instBts += BITS_3 + BITS_3;
     } else {
       if (!Regs[operands]) {
-        console.log(`Syntax Error neer ${inst}`);
+        console.log(`Syntax Error near ${inst}`);
         InstructionMemory.destroy();
         InstructionMemory.end();
         return;
       }
-      instBts += Regs[operands];
+      if (inst === 'IN') {
+        instBts += Regs[operands] + BITS_3;
+      } else if (
+        inst === 'NOT' ||
+        inst === 'NEG' ||
+        inst === 'INC' ||
+        inst === 'DEC'
+      ) {
+        instBts += Regs[operands] + Regs[operands];
+      } else {
+        instBts += BITS_3 + Regs[operands];
+      }
     }
-    instBts += BITS_3 + BITS_3;
+    instBts += BITS_3;
   } else if (TwoOperands[inst]) {
     instBts += TwoOperands[inst];
     const [op1, op2, op3] = operands.split(',').map((op) => op.trim());
-    if (
-      !Regs[op1] ||
-      !op2 ||
-      !(!isNaN(Number(op2)) || Regs[op2]) ||
-      (op3 && !Regs[op3])
-    ) {
-      console.log(`Syntax Error neer ${inst}`);
+    if (!Regs[op1] || !op2 || !(!isNaN(Number(op2)) || Regs[op2])) {
+      console.log(`Syntax Error near ${inst}`);
       return;
     }
     if (inst === 'SWAP') {
       if (op3) {
-        console.log(`Syntax Error neer ${inst}, takes only two operands`);
+        console.log(`Syntax Error near ${inst}, takes only two operands`);
         return;
       }
       instBts += Regs[op2] + Regs[op1];
       instBts += BITS_3;
     } else if (inst === 'BITSET') {
       if (op3) {
-        console.log(`Syntax Error neer ${inst}, takes only two operands`);
+        console.log(`Syntax Error near ${inst}, takes only two operands`);
         return;
       }
-      instBts += Regs[op1] + BITS_3 + BITS_3;
+      instBts += Regs[op1] + Regs[op1] + BITS_3;
       imm = op2;
     } else if (inst === 'CMP') {
       if (op3) {
-        console.log(`Syntax Error neer ${inst}, takes only two operands`);
+        console.log(`Syntax Error near ${inst}, takes only two operands`);
         return;
       }
       instBts += BITS_3 + Regs[op1] + Regs[op2];
     } else if (inst === 'RCL' || inst === 'RCR') {
       if (op3) {
-        console.log(`Syntax Error neer ${inst}, takes only two operands`);
+        console.log(`Syntax Error near ${inst}, takes only two operands`);
         return;
       }
-      instBts += BITS_3 + Regs[op1] + BITS_3;
+      instBts += Regs[op1] + Regs[op1] + BITS_3;
       imm = op2;
+    } else if (inst === 'ADDI') {
+      instBts += Regs[op1] + Regs[op2] + BITS_3;
+      imm = op3;
     } else {
       instBts += Regs[op1] + Regs[op2] + Regs[op3];
     }
@@ -138,7 +147,7 @@ for (const line of inputFile) {
     instBts += MemoryInstructions[inst];
     const [op1, op2] = operands.split(',').map((op) => op.trim());
     if (!Regs[op1] || isNaN(Number(op2))) {
-      console.log(`Syntax Error neer ${inst}`);
+      console.log(`Syntax Error near ${inst}`);
       InstructionMemory.destroy();
       InstructionMemory.end();
       return;

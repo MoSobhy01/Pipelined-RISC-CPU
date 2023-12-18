@@ -1,9 +1,9 @@
 
-ADD R1 , R4 , R5 
-OUT R4
+ADDi R1 , R4 , 7 
+CALL R4
+IN R4
 RTI 
-NOT R0
-
+NOT R5
 LDM R7 ,7
 IN R1
 JMP R1
