@@ -7,5 +7,7 @@ RTI
 LDM R7 ,7
 IN R1
 JMP R1
-NOP
 NOT R5
+xor r1,r2,r3
+RCL R7, 15
+SWAP R4, R5
