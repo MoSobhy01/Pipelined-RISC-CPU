@@ -42,7 +42,7 @@ BEGIN
                 Memo(i) <= (OTHERS => '0');
             END LOOP;
 
-            file_open(memfile, "./dataMem.txt", read_mode);
+            file_open(memfile, "D:/Study/ARC_Project/Pipelined-RISC-CPU/dataMem.txt", read_mode);
             i := 0;
             WHILE((i < 2048) AND (NOT endfile(memfile))) LOOP
                 readline(memfile, line_buffer);
