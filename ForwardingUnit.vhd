@@ -4,6 +4,7 @@ USE IEEE.numeric_std.ALL;
 
 ENTITY ForwardingUnit IS
   PORT (
+    swapStall : IN STD_LOGIC;
     ID_EX_src1 : IN STD_LOGIC_VECTOR(2 DOWNTO 0);
     ID_EX_src2 : IN STD_LOGIC_VECTOR(2 DOWNTO 0);
     EX_MEM_MemRead : STD_LOGIC;
@@ -19,10 +20,11 @@ BEGIN
     Op1_Forward <= "00";
     Op2_Forward <= "00";
     -- EX Hazard
-    IF (EX_MEM_WB = '1' AND EX_MEM_MemRead = '0') THEN
+    IF (EX_MEM_WB = '1' AND EX_MEM_MemRead = '0' and swapStall = '0') THEN
       IF (EX_MEM_dst = ID_EX_src1) THEN
         Op1_Forward <= "01";
-      ELSIF (EX_MEM_dst = ID_EX_src2) THEN
+      END IF;
+      IF (EX_MEM_dst = ID_EX_src2) THEN
         Op2_Forward <= "01";
       END IF;
     END IF;
@@ -31,7 +33,8 @@ BEGIN
     IF (MEM_WB_WB = '1') THEN
       IF (MEM_WB_dst = ID_EX_src1) THEN
         Op1_Forward <= "10";
-      ELSIF (MEM_WB_dst = ID_EX_src2) THEN
+      END IF;
+      IF (MEM_WB_dst = ID_EX_src2) THEN
         Op2_Forward <= "10";
       END IF;
     END IF;
