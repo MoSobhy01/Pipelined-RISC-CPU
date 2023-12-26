@@ -56,7 +56,7 @@ const Regs = {
 };
 
 // Open the input file
-const inputFilePath = 'code.asm';
+const inputFilePath = 'testCases/Branch.asm';
 const inputFile = fs.readFileSync(inputFilePath, 'utf8').split('\n');
 
 // Open the instructions memory file
@@ -64,18 +64,29 @@ const outputFilePath = 'instructionMem.txt';
 const InstructionMemory = fs.createWriteStream(outputFilePath);
 
 let imm = '';
+let lineNumber = 0;
 
 for (const line of inputFile) {
-  if (line.startsWith(';') || line.trim() === '') continue;
+  if (line.trim().startsWith('#') || line.trim() === '') continue;
   const instructionArray = line.trim().split(/\s+/);
   const inst = instructionArray[0].toUpperCase();
   const operands = instructionArray
     .slice(1)
     .join('')
-    .split(';')[0]
+    .split('#')[0]
     .toUpperCase();
 
   let instBts = '';
+
+  if (inst === '.ORG') {
+    while (lineNumber < Number(operands - 1)) {
+      InstructionMemory.write(
+        BITS_3 + BITS_3 + BITS_3 + BITS_3 + BITS_3 + '0\n'
+      );
+      lineNumber++;
+    }
+    continue;
+  }
 
   if (OneZeroOperand[inst]) {
     instBts += OneZeroOperand[inst];
@@ -145,8 +156,9 @@ for (const line of inputFile) {
   } else if (MemoryInstructions[inst]) {
     instBts += MemoryInstructions[inst];
     const [op1, op2] = operands.split(',').map((op) => op.trim());
-    if (!Regs[op1] || (op2 && isNaN(Number(op2)))) {
+    if (!Regs[op1]) {
       console.log(`Syntax Error near ${inst}`);
+      console.log(inst, op1, op2);
       InstructionMemory.destroy();
       InstructionMemory.end();
       return;
@@ -173,6 +185,8 @@ for (const line of inputFile) {
   }
   instBts += imm ? '1' : '0';
   InstructionMemory.write(instBts + '\n');
+  lineNumber++;
+
   if (imm) {
     let immVal = '';
     if (/^0x/i.test(imm)) {
@@ -181,6 +195,7 @@ for (const line of inputFile) {
       immVal += parseInt(imm).toString(2).padStart(16, '0');
     }
     InstructionMemory.write(immVal + '\n');
+    lineNumber++;
     imm = '';
   }
 }
