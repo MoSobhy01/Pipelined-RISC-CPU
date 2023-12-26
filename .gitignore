@@ -3,3 +3,5 @@ work/*
 *.bak
 *.mti
 wlf*
+code.asm
+instructionMem.txt

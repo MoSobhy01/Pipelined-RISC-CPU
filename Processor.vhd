@@ -80,6 +80,15 @@ ARCHITECTURE ArchProcessor OF Processor IS
         );
     END COMPONENT;
 
+    COMPONENT swapDetection IS
+        PORT (
+            clk : IN STD_LOGIC;
+            instruction : IN STD_LOGIC_VECTOR(15 DOWNTO 0);
+            swapStall : OUT STD_LOGIC;
+            swap_ins : OUT STD_LOGIC_VECTOR(15 DOWNTO 0)
+        );
+    END COMPONENT;
+
     COMPONENT mux2 IS
         GENERIC (n : INTEGER := 32);
         PORT (
@@ -100,12 +109,12 @@ ARCHITECTURE ArchProcessor OF Processor IS
             S : IN STD_LOGIC_VECTOR(1 DOWNTO 0);
             F_mux : OUT STD_LOGIC_VECTOR(n - 1 DOWNTO 0));
     END COMPONENT;
-
     COMPONENT PC_circuit IS
         PORT (
             clk : IN STD_LOGIC;
             reset : IN STD_LOGIC;
             enable : IN STD_LOGIC;
+            branch : IN STD_LOGIC;
             pc_in : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
             pc_out : OUT STD_LOGIC_VECTOR(31 DOWNTO 0)
         );
@@ -118,6 +127,7 @@ ARCHITECTURE ArchProcessor OF Processor IS
     SIGNAL ImmSrc, Branch, BranchIf0, MemRead, MemWrite, SpOp, Protect, Free, MemWb, RegWrite, PortWrite, PortWB : STD_LOGIC;
     SIGNAL AluOp : STD_LOGIC_VECTOR(3 DOWNTO 0);
     SIGNAL signal_vector : STD_LOGIC_VECTOR(signal_count - 1 DOWNTO 0);
+    SIGNAL fetched_instruction : STD_LOGIC_VECTOR(15 DOWNTO 0);
     SIGNAL instruction : STD_LOGIC_VECTOR(15 DOWNTO 0);
     SIGNAL read_reg1, read_reg2, write_reg : STD_LOGIC_VECTOR(2 DOWNTO 0);
     SIGNAL reg_read_data1, reg_read_data2, reg_write_data : STD_LOGIC_VECTOR(31 DOWNTO 0);
@@ -126,38 +136,36 @@ ARCHITECTURE ArchProcessor OF Processor IS
     SIGNAL immidiate_value : STD_LOGIC_VECTOR (15 DOWNTO 0);
     SIGNAL immidiate_alu_in : STD_LOGIC_VECTOR (31 DOWNTO 0);
     SIGNAL immidiate_flag : STD_LOGIC := '0';
-    SIGNAL WB_selector : STD_LOGIC_VECTOR(1 DOWNTO 0);
     SIGNAL zero_vector16 : STD_LOGIC_VECTOR(15 DOWNTO 0) := (OTHERS => '0');
     SIGNAL one_vector16 : STD_LOGIC_VECTOR(15 DOWNTO 0) := (OTHERS => '1');
     SIGNAL zero_vector32 : STD_LOGIC_VECTOR(31 DOWNTO 0) := (OTHERS => '0');
     SIGNAL one_vector32 : STD_LOGIC_VECTOR(31 DOWNTO 0) := (OTHERS => '1');
     --swap
     SIGNAL swapStall : STD_LOGIC;
-    SIGNAL swap_ins1 : STD_LOGIC_VECTOR(15 DOWNTO 0);
-    SIGNAL swap_ins2 : STD_LOGIC_VECTOR(15 DOWNTO 0);
+    SIGNAL swap_ins : STD_LOGIC_VECTOR(15 DOWNTO 0);
     -----------------registers--------------------
     SIGNAL pc, sp : STD_LOGIC_VECTOR(31 DOWNTO 0);
     SIGNAL CCR : STD_LOGIC_VECTOR(2 DOWNTO 0);
     SIGNAL CCR_next : STD_LOGIC_VECTOR(2 DOWNTO 0);
-    SIGNAL if_id_reg : STD_LOGIC_VECTOR(47 DOWNTO 0);
-    SIGNAL id_ex_reg : STD_LOGIC_VECTOR(130 DOWNTO 0);
-    SIGNAL ex_mem_reg : STD_LOGIC_VECTOR(107 DOWNTO 0);
-    SIGNAL mem_wb_reg : STD_LOGIC_VECTOR(69 DOWNTO 0);
+    SIGNAL if_id_reg : STD_LOGIC_VECTOR(48 DOWNTO 0);
+    SIGNAL id_ex_reg : STD_LOGIC_VECTOR(131 DOWNTO 0);
+    SIGNAL ex_mem_reg : STD_LOGIC_VECTOR(106 DOWNTO 0);
+    SIGNAL mem_wb_reg : STD_LOGIC_VECTOR(68 DOWNTO 0);
     SIGNAL branch_sel : STD_LOGIC;
     SIGNAL pc_enable : STD_LOGIC := '1';
 BEGIN
     --components
-    u0 : InstructionMemory PORT MAP(rst, pc, instruction);
+    u0 : InstructionMemory PORT MAP(rst, pc, fetched_instruction);
     u1 : RegFile PORT MAP(mem_wb_reg(68), reg_write_data, rst, read_reg1, read_reg2, reg_read_data1, reg_read_data2, write_reg);
     u2 : CU PORT MAP(if_id_reg(15 DOWNTO 10), AluOp, ImmSrc, Branch, BranchIf0, MemRead, MemWrite, SpOp, protect, free, MemWb, RegWrite, PortWrite, PortWB);
     u3 : alu PORT MAP(alu_in1, alu_in2, id_ex_reg(70 DOWNTO 67), CCR, CCR_next, alu_out);
     u4 : DataMemory PORT MAP(rst, ex_mem_reg(67), ex_mem_reg(68), ex_mem_reg(70), ex_mem_reg(71), data_mem_in, data_mem_out, data_mem_address);
-    u5 : mux4 PORT MAP(mem_wb_reg(34 DOWNTO 3), mem_wb_reg(66 DOWNTO 35), in_port, in_port, WB_selector, reg_write_data); --Write back mux
+
+    u5 : mux2 PORT MAP(mem_wb_reg(34 DOWNTO 3), mem_wb_reg(66 DOWNTO 35), mem_wb_reg(67), reg_write_data); --Write back mux
     u6 : mux2 PORT MAP(id_ex_reg(34 DOWNTO 3), immidiate_alu_in, id_ex_reg(71), alu_in2);
     u7 : mux2 GENERIC MAP(16) PORT MAP(zero_vector16, instruction, immidiate_flag, immidiate_value);
-
-    u8 : swapDetection PORT MAP(instruction, swapStall, swap_ins);
-    u9 : mux2 PORT MAP(instruction, swap_ins, swapStall, instruction);
+    u8 : swapDetection PORT MAP(clk, fetched_instruction, swapStall, swap_ins);
+    u9 : mux2 GENERIC MAP(16) PORT MAP(fetched_instruction, swap_ins, swapStall, instruction);
 
     u11 : PC_circuit PORT MAP(clk, rst, pc_enable, branch_sel, alu_in1, pc);
     --connections
@@ -175,7 +183,6 @@ BEGIN
     data_mem_address <= ex_mem_reg(22 DOWNTO 3);
 
     write_reg <= mem_wb_reg(2 DOWNTO 0);
-    WB_selector <= mem_wb_reg(69) & mem_wb_reg(67);
 
     --Out Instruction
     out_port <= data_mem_in WHEN ex_mem_reg(74) = '1' ELSE
@@ -210,7 +217,3 @@ BEGIN
         END IF;
     END PROCESS;
 END ArchProcessor;
-
---id_ex_reg: 70-67:AluOP 71:immSrc --> 
---ex_mem_reg: 67: memRead 68:memWrite -->
---mem_wb_reg: 67: regWrite 68:MemWb
