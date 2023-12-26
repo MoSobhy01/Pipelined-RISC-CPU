@@ -213,8 +213,6 @@ BEGIN
             ex_mem_reg <= (OTHERS => '0');
             mem_wb_reg <= (OTHERS => '0');
 
-        ELSIF falling_edge(clk) THEN
-
         ELSIF rising_edge(clk) THEN
             pc_enable <= '1';
             CCR <= CCR_next;
