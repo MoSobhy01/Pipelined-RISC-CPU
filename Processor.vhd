@@ -101,42 +101,50 @@ ARCHITECTURE ArchProcessor OF Processor IS
             F_mux : OUT STD_LOGIC_VECTOR(n - 1 DOWNTO 0));
     END COMPONENT;
 
-     -------------global helper variable-------------
-     CONSTANT signal_count : INTEGER := 16; --Alu_op takes 4 slots
+    COMPONENT PC_circuit IS
+        PORT (
+            clk : IN STD_LOGIC;
+            reset : IN STD_LOGIC;
+            enable : IN STD_LOGIC;
+            pc_in : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
+            pc_out : OUT STD_LOGIC_VECTOR(31 DOWNTO 0)
+        );
+    END COMPONENT;
 
-     -----------------signal bus--------------------
-     SIGNAL ImmSrc, Branch, BranchIf0, MemRead, MemWrite, SpOp, Protect, Free, MemWb, RegWrite, PortWrite, PortWB : STD_LOGIC;
-     SIGNAL AluOp : STD_LOGIC_VECTOR(3 DOWNTO 0);
-     SIGNAL signal_vector : STD_LOGIC_VECTOR(signal_count - 1 DOWNTO 0);
-     SIGNAL instruction : STD_LOGIC_VECTOR(15 DOWNTO 0);
-     SIGNAL read_reg1, read_reg2, write_reg : STD_LOGIC_VECTOR(2 DOWNTO 0);
-     SIGNAL reg_read_data1, reg_read_data2, reg_write_data : STD_LOGIC_VECTOR(31 DOWNTO 0);
-     SIGNAL alu_in1, alu_in2, alu_out, data_mem_in, data_mem_out : STD_LOGIC_VECTOR (31 DOWNTO 0);
-     SIGNAL data_mem_address : STD_LOGIC_VECTOR (19 DOWNTO 0);
-     SIGNAL immidiate_value : STD_LOGIC_VECTOR (15 DOWNTO 0);
-     SIGNAL immidiate_alu_in : STD_LOGIC_VECTOR (31 DOWNTO 0);
-     SIGNAL immidiate_flag : STD_LOGIC := '0';
-     SIGNAL WB_selector : STD_LOGIC_VECTOR(1 DOWNTO 0);
-     SIGNAL zero_vector16 : STD_LOGIC_VECTOR(15 DOWNTO 0) := (OTHERS => '0');
-     SIGNAL one_vector16 : STD_LOGIC_VECTOR(15 DOWNTO 0) := (OTHERS => '1');
-     SIGNAL zero_vector32 : STD_LOGIC_VECTOR(31 DOWNTO 0) := (OTHERS => '0');
-     SIGNAL one_vector32 : STD_LOGIC_VECTOR(31 DOWNTO 0) := (OTHERS => '1');
-     --swap
-     signal swapStall: STD_LOGIC;
-     signal swap_ins1: std_logic_vector(15 downto 0);
-     signal swap_ins2: std_logic_vector(15 downto 0);
+    -------------global helper variable-------------
+    CONSTANT signal_count : INTEGER := 16; --Alu_op takes 4 slots
 
-
-     -----------------registers--------------------
-     SIGNAL pc, sp : STD_LOGIC_VECTOR(31 DOWNTO 0);
-     SIGNAL CCR : STD_LOGIC_VECTOR(2 DOWNTO 0);
-     SIGNAL CCR_next : STD_LOGIC_VECTOR(2 DOWNTO 0);
-     SIGNAL if_id_reg : STD_LOGIC_VECTOR(47 DOWNTO 0);
-     SIGNAL id_ex_reg : STD_LOGIC_VECTOR(130 DOWNTO 0);
-     SIGNAL ex_mem_reg : STD_LOGIC_VECTOR(107 DOWNTO 0);
-     SIGNAL mem_wb_reg : STD_LOGIC_VECTOR(69 DOWNTO 0);
-
-
+    -----------------signal bus--------------------
+    SIGNAL ImmSrc, Branch, BranchIf0, MemRead, MemWrite, SpOp, Protect, Free, MemWb, RegWrite, PortWrite, PortWB : STD_LOGIC;
+    SIGNAL AluOp : STD_LOGIC_VECTOR(3 DOWNTO 0);
+    SIGNAL signal_vector : STD_LOGIC_VECTOR(signal_count - 1 DOWNTO 0);
+    SIGNAL instruction : STD_LOGIC_VECTOR(15 DOWNTO 0);
+    SIGNAL read_reg1, read_reg2, write_reg : STD_LOGIC_VECTOR(2 DOWNTO 0);
+    SIGNAL reg_read_data1, reg_read_data2, reg_write_data : STD_LOGIC_VECTOR(31 DOWNTO 0);
+    SIGNAL alu_in1, alu_in2, alu_out, data_mem_in, data_mem_out : STD_LOGIC_VECTOR (31 DOWNTO 0);
+    SIGNAL data_mem_address : STD_LOGIC_VECTOR (19 DOWNTO 0);
+    SIGNAL immidiate_value : STD_LOGIC_VECTOR (15 DOWNTO 0);
+    SIGNAL immidiate_alu_in : STD_LOGIC_VECTOR (31 DOWNTO 0);
+    SIGNAL immidiate_flag : STD_LOGIC := '0';
+    SIGNAL WB_selector : STD_LOGIC_VECTOR(1 DOWNTO 0);
+    SIGNAL zero_vector16 : STD_LOGIC_VECTOR(15 DOWNTO 0) := (OTHERS => '0');
+    SIGNAL one_vector16 : STD_LOGIC_VECTOR(15 DOWNTO 0) := (OTHERS => '1');
+    SIGNAL zero_vector32 : STD_LOGIC_VECTOR(31 DOWNTO 0) := (OTHERS => '0');
+    SIGNAL one_vector32 : STD_LOGIC_VECTOR(31 DOWNTO 0) := (OTHERS => '1');
+    --swap
+    SIGNAL swapStall : STD_LOGIC;
+    SIGNAL swap_ins1 : STD_LOGIC_VECTOR(15 DOWNTO 0);
+    SIGNAL swap_ins2 : STD_LOGIC_VECTOR(15 DOWNTO 0);
+    -----------------registers--------------------
+    SIGNAL pc, sp : STD_LOGIC_VECTOR(31 DOWNTO 0);
+    SIGNAL CCR : STD_LOGIC_VECTOR(2 DOWNTO 0);
+    SIGNAL CCR_next : STD_LOGIC_VECTOR(2 DOWNTO 0);
+    SIGNAL if_id_reg : STD_LOGIC_VECTOR(47 DOWNTO 0);
+    SIGNAL id_ex_reg : STD_LOGIC_VECTOR(130 DOWNTO 0);
+    SIGNAL ex_mem_reg : STD_LOGIC_VECTOR(107 DOWNTO 0);
+    SIGNAL mem_wb_reg : STD_LOGIC_VECTOR(69 DOWNTO 0);
+    SIGNAL branch_sel : STD_LOGIC;
+    SIGNAL pc_enable : STD_LOGIC := '1';
 BEGIN
     --components
     u0 : InstructionMemory PORT MAP(rst, pc, instruction);
@@ -147,12 +155,13 @@ BEGIN
     u5 : mux4 PORT MAP(mem_wb_reg(34 DOWNTO 3), mem_wb_reg(66 DOWNTO 35), in_port, in_port, WB_selector, reg_write_data); --Write back mux
     u6 : mux2 PORT MAP(id_ex_reg(34 DOWNTO 3), immidiate_alu_in, id_ex_reg(71), alu_in2);
     u7 : mux2 GENERIC MAP(16) PORT MAP(zero_vector16, instruction, immidiate_flag, immidiate_value);
-    
+
     u8 : swapDetection PORT MAP(instruction, swapStall, swap_ins);
     u9 : mux2 PORT MAP(instruction, swap_ins, swapStall, instruction);
 
-
+    u11 : PC_circuit PORT MAP(clk, rst, pc_enable, branch_sel, alu_in1, pc);
     --connections
+    branch_sel <= Branch OR (BranchIf0 AND CCR(0));
 
     read_reg1 <= if_id_reg(6 DOWNTO 4);
     read_reg2 <= if_id_reg(3 DOWNTO 1);
@@ -182,7 +191,7 @@ BEGIN
             id_ex_reg <= (OTHERS => '0');
             ex_mem_reg <= (OTHERS => '0');
             mem_wb_reg <= (OTHERS => '0');
-        
+
         ELSIF falling_edge(clk) THEN
 
         ELSIF rising_edge(clk) THEN
