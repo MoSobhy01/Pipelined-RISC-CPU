@@ -53,7 +53,8 @@ ARCHITECTURE ArchProcessor OF Processor IS
             MemWb : OUT STD_LOGIC;
             RegWrite : OUT STD_LOGIC;
             PortWrite : OUT STD_LOGIC;
-            PortWB : OUT STD_LOGIC
+            PortWB : OUT STD_LOGIC;
+            PcWrite : OUT STD_LOGIC
         );
     END COMPONENT;
 

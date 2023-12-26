@@ -3,7 +3,7 @@ use ieee.std_logic_1164.all;
 
 entity CU is
   generic (
-    OUTPUT_WIDTH : integer := 16
+    OUTPUT_WIDTH : integer := 17
   );
   port (
     input : in std_logic_vector(5 downto 0);
@@ -19,7 +19,8 @@ entity CU is
     MemWb : out std_logic;
     RegWrite  : out std_logic;
     PortWrite  : out std_logic;
-    PortWB  : out std_logic
+    PortWB  : out std_logic;
+    PcWrite  : out std_logic
   );
 end entity CU;
 
@@ -75,50 +76,50 @@ begin
   --NO Operation
   variable NOP_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := (others => '0');
 
---  AluOp | ImmSrc | Branch | Branch zero | MemRead | MemWrite | SP-Op | Protect | Free | MemWB | RegWrite
+--  AluOp | ImmSrc | Branch | Branch zero | MemRead | MemWrite | SP-Op | Protect | Free | MemWB | RegWrite | PcWrite
 
   -- ALU Operations
-  variable NOT_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0001000000000100";
-  variable NEG_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0010000000000100";
-  variable DEC_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0100000000000100";
-  variable INC_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0011000000000100";
-  variable OR_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0)  := "1010000000000100";
-  variable ADD_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0111000000000100";
-  variable ADDI_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0):= "0111100000000100";
-  variable SUB_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "1000000000000100";
-  variable AND_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "1001000000000100";
-  variable XOR_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "1011000000000100";
-  variable CMP_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "1000000000000000";
-  variable RCL_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "1110100000000100";
-  variable RCR_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "1111100000000100";
-  variable BITSET_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "1101100000000100";
+  variable NOT_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00010000000001000";
+  variable NEG_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00100000000001000";
+  variable DEC_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "01000000000001000";
+  variable INC_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00110000000001000";
+  variable OR_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0)  := "10100000000001000";
+  variable ADD_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "01110000000001000";
+  variable ADDI_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0):= "01111000000001000";
+  variable SUB_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "10000000000001000";
+  variable AND_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "10010000000001000";
+  variable XOR_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "10110000000001000";
+  variable CMP_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "10000000000000000";
+  variable RCL_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "11101000000001000";
+  variable RCR_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "11111000000001000";
+  variable BITSET_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "11011000000001000";
   
   -- SP Operations
-  variable PUSH_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0):= "0000000011000000";
-  variable POP_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000000101001100";
+  variable PUSH_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0):= "00000000110000001";
+  variable POP_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000001010011001";
 
   -- Memory Operations
-  variable LDM_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0101100000000100";
-  variable LDD_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000100100001100";
-  variable STD_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000100010000000";
-  variable FREE_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000000010010000";
-  variable PROTECT_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000000010100000";
+  variable LDM_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "01011000000001000";
+  variable LDD_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00001001000011000";
+  variable STD_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00001000100000000";
+  variable FREE_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000000100100000";
+  variable PROTECT_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000000101000000";
 
   -- Branch Opertions
-  variable JMP_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000010000000000";
-  variable JZ_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000001000000000";
+  variable JMP_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000100000000000";
+  variable JZ_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000010000000000";
 
   --**************************** NOT SURE ENOUGH ********************************
   -- CALL = PUSH + JMP
-  variable CALL_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000010011000000";
-  variable RET_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000010101000000";
+  variable CALL_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000100110000001";
+  variable RET_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000101010000001";
   -- RTI = 2 x POP 
-  variable RTI_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000010101000000";
+  variable RTI_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000101010000001";
 
-  variable OUT_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000000000000010";
-  variable IN_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000000000000101";
+  variable OUT_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000000000000100";
+  variable IN_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000000000001010";
 
-  variable SWAP_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "0000000000000000";
+  variable SWAP_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000000000000000";
 
   -- |------------------------------------------ DECODING ------------------------------------------------|
   begin
@@ -189,17 +190,18 @@ begin
 
   end process;
 
-  AluOp    <= temp_vector(15 downto 12);
-  ImmSrc    <= temp_vector(11);
-  Branch    <= temp_vector(10);
-  BranchIf0 <= temp_vector(9);
-  MemRead   <= temp_vector(8);
-  MemWrite  <= temp_vector(7);
-  SpOp      <= temp_vector(6);
-  protect   <= temp_vector(5);
-  free      <= temp_vector(4);
-  MemWb  <= temp_vector(3);
-  RegWrite  <= temp_vector(2);
-  PortWrite  <= temp_vector(1);
-  PortWB  <= temp_vector(0);
+  AluOp    <= temp_vector(16 downto 13);
+  ImmSrc    <= temp_vector(12);
+  Branch    <= temp_vector(11);
+  BranchIf0 <= temp_vector(10);
+  MemRead   <= temp_vector(9);
+  MemWrite  <= temp_vector(8);
+  SpOp      <= temp_vector(7);
+  protect   <= temp_vector(6);
+  free      <= temp_vector(5);
+  MemWb  <= temp_vector(4);
+  RegWrite  <= temp_vector(3);
+  PortWrite  <= temp_vector(2);
+  PortWB  <= temp_vector(1);
+  PcWrite <= temp_vector(0);
 end architecture Behavioral;
