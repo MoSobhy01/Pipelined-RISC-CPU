@@ -189,11 +189,11 @@ for (const line of inputFile) {
 
   if (imm) {
     let immVal = '';
-    if (/^0x/i.test(imm)) {
+    // if (/^0x/i.test(imm)) {
       immVal += parseInt(imm, 16).toString(2).padStart(16, '0');
-    } else {
-      immVal += parseInt(imm).toString(2).padStart(16, '0');
-    }
+    // } else {
+    // immVal += parseInt(imm).toString(2).padStart(16, '0');
+    // }
     InstructionMemory.write(immVal + '\n');
     lineNumber++;
     imm = '';
