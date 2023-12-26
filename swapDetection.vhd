@@ -13,25 +13,23 @@ END swapDetection;
 
 ARCHITECTURE ArchswapDetection OF swapDetection IS
     signal swap_ins1, swap_ins2: std_logic_vector(15 downto 0);
-    signal state: std_logic := '0';
+    signal state: integer := 0;
 
 BEGIN
     swap_ins1 <= "010100" & instruction(6 downto 4) & instruction(3 downto 1) & instruction(3 downto 1) & '0';
     swap_ins2 <= "010100" & instruction(3 downto 1) & instruction(6 downto 4) & instruction(6 downto 4) & '0';
+    swapStall <= '1' when (instruction(15 downto 10) xnor "010000") = "111111" and (state = 0 or state = 1) else '0';
+    swap_ins <= swap_ins1 when state = 0 else swap_ins2;
 
     process (clk) begin
-        if falling_edge(clk) and (instruction(15 downto 10) xnor "010000") = "111111" THEN 
-            if state = '0' then
-                swap_ins <= swap_ins1;
-                state <= '1';
-                swapStall <= '1';
+        if rising_edge(clk) and (instruction(15 downto 10) xnor "010000") = "111111" THEN 
+            if state = 0 then                
+                state <= 1;
+            elsif state = 1 then
+                state <= 2;
             else 
-                swap_ins <= swap_ins2;
-                state <= '0';
+                state <= 0;
             end if;
-
-        elsif rising_edge(clk) and state = '0' then
-            swapStall <= '0';
         end if;
    end process;
 END ArchswapDetection;

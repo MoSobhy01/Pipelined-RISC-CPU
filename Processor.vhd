@@ -143,7 +143,7 @@ END COMPONENT;
      SIGNAL id_ex_reg : STD_LOGIC_VECTOR(131 DOWNTO 0);
      SIGNAL ex_mem_reg : STD_LOGIC_VECTOR(106 DOWNTO 0);
      SIGNAL mem_wb_reg : STD_LOGIC_VECTOR(68 DOWNTO 0);
-
+    signal first: std_logic:= '0';
 
 BEGIN
     --components
@@ -190,10 +190,11 @@ BEGIN
             ex_mem_reg <= (OTHERS => '0');
             mem_wb_reg <= (OTHERS => '0');
         
-        ELSIF falling_edge(clk) THEN
+        ELSIF falling_edge(clk) and first = '1' and swapStall = '0' THEN
+            pc <= STD_LOGIC_VECTOR(unsigned(pc) + 1);
 
         ELSIF rising_edge(clk) THEN
-            pc <= STD_LOGIC_VECTOR(unsigned(pc) + 1);
+            first <= '1';
             CCR <= CCR_next;
             IF immidiate_flag = '0' THEN
                 immidiate_flag <= instruction(0);
