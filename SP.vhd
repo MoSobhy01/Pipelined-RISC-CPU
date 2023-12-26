@@ -17,7 +17,7 @@ BEGIN
   PROCESS (clk, reset) IS
   BEGIN
     IF (reset = '1') THEN
-      SP_Reg <= (OTHERS => '0');
+      SP_Reg <= "00000000000000000000000000001111";
     ELSIF (rising_edge(clk)) THEN
       IF (MemWrite = '1') THEN
         SP_out_reg <= STD_LOGIC_VECTOR(unsigned(SP_Reg) + 1);

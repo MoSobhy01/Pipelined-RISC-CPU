@@ -56,7 +56,7 @@ const Regs = {
 };
 
 // Open the input file
-const inputFilePath = 'testCases/Branch.asm';
+const inputFilePath = 'code.asm';
 const inputFile = fs.readFileSync(inputFilePath, 'utf8').split('\n');
 
 // Open the instructions memory file
@@ -190,7 +190,7 @@ for (const line of inputFile) {
   if (imm) {
     let immVal = '';
     // if (/^0x/i.test(imm)) {
-      immVal += parseInt(imm, 16).toString(2).padStart(16, '0');
+    immVal += parseInt(imm, 16).toString(2).padStart(16, '0');
     // } else {
     // immVal += parseInt(imm).toString(2).padStart(16, '0');
     // }

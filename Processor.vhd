@@ -132,6 +132,12 @@ ARCHITECTURE ArchProcessor OF Processor IS
             Op1_Forward, Op2_Forward : OUT STD_LOGIC_VECTOR(1 DOWNTO 0)
         );
     END COMPONENT;
+    COMPONENT SP_Circuit IS
+        PORT (
+            clk, reset, enable, MemWrite : STD_LOGIC;
+            SP_Out : OUT STD_LOGIC_VECTOR(31 DOWNTO 0)
+        );
+    END COMPONENT;
 
     -------------global helper variable-------------
     CONSTANT signal_count : INTEGER := 17; --Alu_op takes 4 slots
@@ -157,13 +163,11 @@ ARCHITECTURE ArchProcessor OF Processor IS
 
     SIGNAL branch_sel : STD_LOGIC;
     SIGNAL insert_nop : STD_LOGIC;
-    SIGNAL instructon_selector : STD_LOGIC_vector(1 downto 0);
+    SIGNAL instructon_selector : STD_LOGIC_VECTOR(1 DOWNTO 0);
     SIGNAL pc_enable : STD_LOGIC := '0';
     SIGNAL Op1_Forward, Op2_Forward : STD_LOGIC_VECTOR(1 DOWNTO 0);
-    signal first_positive: std_logic:= '0';
-    signal if_id_flush: std_logic;
-
-
+    SIGNAL first_positive : STD_LOGIC := '0';
+    SIGNAL if_id_flush : STD_LOGIC;
     --swap
     SIGNAL swapStall : STD_LOGIC;
     SIGNAL swap_ins : STD_LOGIC_VECTOR(15 DOWNTO 0);
@@ -195,8 +199,10 @@ BEGIN
     u13 : ForwardingUnit PORT MAP(id_ex_reg(132), id_ex_reg(138 DOWNTO 136), id_ex_reg(135 DOWNTO 133), ex_mem_reg(67), ex_mem_reg(73), mem_wb_reg(68), ex_mem_reg(2 DOWNTO 0), mem_wb_reg(2 DOWNTO 0), Op1_Forward, Op2_Forward);
     u14 : mux4 PORT MAP(alu_in1_nof, ex_mem_reg(66 DOWNTO 35), reg_write_data, zero_vector32, Op1_Forward, alu_in1);
     u15 : mux4 PORT MAP(alu_in2_nof, ex_mem_reg(66 DOWNTO 35), reg_write_data, zero_vector32, Op2_Forward, alu_in2);
+    u16 : SP_Circuit PORT MAP(clk, rst, ex_mem_reg(69), ex_mem_reg(68), sp);
+    u17 : mux2 GENERIC MAP(20) PORT MAP(ex_mem_reg(22 DOWNTO 3), sp(19 DOWNTO 0), ex_mem_reg(69), data_mem_address);
     --connections
-    branch_sel <= id_ex_reg(72) OR (id_ex_reg(73) AND CCR(0)) or mem_wb_reg(69);
+    branch_sel <= id_ex_reg(72) OR (id_ex_reg(73) AND CCR(0)) OR mem_wb_reg(69);
 
     read_reg1 <= if_id_reg(6 DOWNTO 4);
     read_reg2 <= if_id_reg(3 DOWNTO 1);
@@ -207,27 +213,28 @@ BEGIN
         one_vector16 & immidiate_value;
 
     data_mem_in <= ex_mem_reg(66 DOWNTO 35);
-    data_mem_address <= ex_mem_reg(22 DOWNTO 3);
+    -- data_mem_address <= ex_mem_reg(22 DOWNTO 3);
 
     write_reg <= mem_wb_reg(2 DOWNTO 0);
 
     --Out Instruction
-    out_port <= data_mem_in WHEN ex_mem_reg(74) = '1' ELSE (OTHERS => 'Z');
+    out_port <= data_mem_in WHEN ex_mem_reg(74) = '1' ELSE
+        (OTHERS => 'Z');
 
     --pc enable
-    pc_enable <= '0' when swapStall = '1' or id_ex_reg(83) = '1' or ex_mem_reg(75) = '1' or first_positive = '0' else '1';
+    pc_enable <= '0' WHEN swapStall = '1' OR id_ex_reg(83) = '1' OR ex_mem_reg(75) = '1' OR first_positive = '0' ELSE
+        '1';
 
     --flush if/id
-    if_id_flush <= id_ex_reg(72) OR (id_ex_reg(73) AND CCR(0)) or ex_mem_reg(75);
+    if_id_flush <= id_ex_reg(72) OR (id_ex_reg(73) AND CCR(0)) OR ex_mem_reg(75);
 
     --instruction selector
-    insert_nop <= immidiate_flag or id_ex_reg(83) or ex_mem_reg(75);
+    insert_nop <= immidiate_flag OR id_ex_reg(83) OR ex_mem_reg(75);
     instructon_selector <= swapStall & insert_nop;
-    
+
     --register changes
     PROCESS (clk, rst) BEGIN
         IF rst = '1' THEN
-            sp <= (OTHERS => '0');
             CCR <= (OTHERS => '0');
             if_id_reg <= (OTHERS => '0');
             id_ex_reg <= (OTHERS => '0');
@@ -238,19 +245,19 @@ BEGIN
         ELSIF rising_edge(clk) THEN
             first_positive <= '1';
             CCR <= CCR_next;
-            
-            IF immidiate_flag = '0' then
+
+            IF immidiate_flag = '0' THEN
                 immidiate_flag <= instruction(0);
             ELSE
                 immidiate_flag <= '0';
             END IF;
 
-            IF if_id_flush = '0' then
+            IF if_id_flush = '0' THEN
                 if_id_reg(48 DOWNTO 0) <= swapStall & pc & instruction;
                 id_ex_reg(138 DOWNTO 0) <= if_id_reg(6 DOWNTO 1) & if_id_reg(48) & immidiate_value & if_id_reg(47 DOWNTO 16) & signal_vector & reg_read_data1 & reg_read_data2 & if_id_reg(9 DOWNTO 7);
             ELSE
-                if_id_reg(48 DOWNTO 0) <= (others => '0');
-                id_ex_reg(138 DOWNTO 0) <= (others => '0');
+                if_id_reg(48 DOWNTO 0) <= (OTHERS => '0');
+                id_ex_reg(138 DOWNTO 0) <= (OTHERS => '0');
             END IF;
 
             ex_mem_reg(107 DOWNTO 0) <= id_ex_reg(115 DOWNTO 84) & id_ex_reg(83) & id_ex_reg(81 DOWNTO 74) & alu_out & alu_in2 & id_ex_reg(2 DOWNTO 0);
