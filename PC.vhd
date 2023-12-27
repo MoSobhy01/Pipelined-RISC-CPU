@@ -20,7 +20,7 @@ BEGIN
   BEGIN
     IF reset = '1' THEN
       pc_reg <= (OTHERS => '0');
-    ELSIF falling_edge(clk) AND enable = '1' THEN
+    ELSIF rising_edge(clk) AND enable = '1' THEN
       IF (branch = '0') THEN
         pc_reg <= STD_LOGIC_VECTOR(unsigned(pc_reg) + 1);
       ELSE

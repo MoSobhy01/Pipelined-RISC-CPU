@@ -20,44 +20,54 @@ signal zero_vector: std_logic_vector(31 downto 0) := (others => '0');
 Begin
 process(R1, R2, op)
 variable R2_val: integer;
+variable sum: std_logic_vector(32 downto 0);
 
 begin
 	R2_val := to_integer(UNSIGNED(R2));
 
 	--Bitset
-	if R2_val >= 0 and R2_val <= 31 then
-		Bitset <= R1;
-		Bitset(R2_val) <= '1'; 
-	else
-		Bitset <= R1;
-	end if;
-
-	--Rotate with carry (left and right)
-	CCR_out(2) <= '0';
-	if R2_val >= 1 and R2_val <= 32 then
-		Rcl(31 downto R2_val) <= R1(31 - R2_val downto 0);	
-		Rcr(31 - R2_val downto 0) <= R1(31 downto R2_val);
-		Rcl(R2_val - 1) <= CCR_in(2);
-		Rcr(32 - R2_val) <= CCR_in(2);
-		CCR_out(2) <= Rcl(R2_val - 1);
-		CCR_out(2) <= Rcr(32 - R2_val);
-
-		if R2_val >= 2 then
-			Rcl(R2_val - 2 downto 0) <= R1(31 downto 33 - R2_val);
-			Rcr(31 downto 33 - R2_val) <= R1(R2_val - 2 downto 0);
+	if op = "1101" then
+		if R2_val >= 0 and R2_val <= 31 then
+			Bitset <= R1;
+			Bitset(R2_val) <= '1'; 
 		else
-			Rcl(R2_val - 2 downto 0) <= Rcl(R2_val - 2 downto 0);
-			Rcr(31 downto 33 - R2_val) <= Rcr(31 downto 33 - R2_val);
+			Bitset <= R1;
 		end if;
-	else
-		Rcl <= R1;
-		Rcr <= R1;
-	end if;
-	
-	if op = "0000" or op = "0101" then
+	elsif op = "1110" or op = "1111" then
+		--Rotate with carry (left and right)
+		if R2_val >= 1 and R2_val <= 32 then
+			Rcl(31 downto R2_val) <= R1(31 - R2_val downto 0);	
+			Rcr(31 - R2_val downto 0) <= R1(31 downto R2_val);
+			Rcl(R2_val - 1) <= CCR_in(2);
+			Rcr(32 - R2_val) <= CCR_in(2);
+			CCR_out(2) <= Rcl(R2_val - 1);
+			CCR_out(2) <= Rcr(32 - R2_val);
+
+			if R2_val >= 2 then
+				Rcl(R2_val - 2 downto 0) <= R1(31 downto 33 - R2_val);
+				Rcr(31 downto 33 - R2_val) <= R1(R2_val - 2 downto 0);
+			else
+				Rcl(R2_val - 2 downto 0) <= Rcl(R2_val - 2 downto 0);
+				Rcr(31 downto 33 - R2_val) <= Rcr(31 downto 33 - R2_val);
+			end if;
+		else
+			Rcl <= R1;
+			Rcr <= R1;
+		end if;
+	elsif op = "0000" or op = "0101" then
+		CCR_out(2) <= CCR_in(2);
+	elsif op = "0110" or op = "0111" then
+		sum := std_logic_vector(unsigned(('0' & R1)) + unsigned(('0' & R2)));
+		CCR_out(2) <= sum(32);
+	elsif op = "1000" or op = "1100" then
+		sum := std_logic_vector(unsigned(('0' & R1)) + unsigned(('0' & R2)));
+		CCR_out(2) <= not sum(32);
+	elsif op = "0011" then
+		sum := std_logic_vector(unsigned('0' & R1) + 1);
+		CCR_out(2) <= sum(32);
+	else 
 		CCR_out(2) <= CCR_in(2);
 	end if;
-	
 end process;
 
 

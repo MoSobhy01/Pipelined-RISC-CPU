@@ -19,15 +19,6 @@ BEGIN
   BEGIN
     Op1_Forward <= "00";
     Op2_Forward <= "00";
-    -- EX Hazard
-    IF (EX_MEM_WB = '1' AND EX_MEM_MemRead = '0' and swapStall = '0') THEN
-      IF (EX_MEM_dst = ID_EX_src1) THEN
-        Op1_Forward <= "01";
-      END IF;
-      IF (EX_MEM_dst = ID_EX_src2) THEN
-        Op2_Forward <= "01";
-      END IF;
-    END IF;
 
     -- MEM Hazard
     IF (MEM_WB_WB = '1') THEN
@@ -38,6 +29,17 @@ BEGIN
         Op2_Forward <= "10";
       END IF;
     END IF;
+
+    -- EX Hazard
+    IF (EX_MEM_WB = '1' AND EX_MEM_MemRead = '0' and swapStall = '0') THEN
+      IF (EX_MEM_dst = ID_EX_src1) THEN
+        Op1_Forward <= "01";
+      END IF;
+      IF (EX_MEM_dst = ID_EX_src2) THEN
+        Op2_Forward <= "01";
+      END IF;
+    END IF;
+
 
   END PROCESS;
 END ForwardingUnit_arc;

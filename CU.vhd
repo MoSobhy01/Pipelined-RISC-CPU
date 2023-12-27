@@ -112,7 +112,7 @@ begin
   --**************************** NOT SURE ENOUGH ********************************
   -- CALL = PUSH + JMP
   variable CALL_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000100110000001";
-  variable RET_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000101010000001";
+  variable RET_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000001010010001";
   -- RTI = 2 x POP 
   variable RTI_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000101010000001";
 

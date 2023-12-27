@@ -150,7 +150,7 @@ ARCHITECTURE ArchProcessor OF Processor IS
     SIGNAL instruction : STD_LOGIC_VECTOR(15 DOWNTO 0);
     SIGNAL read_reg1, read_reg2, write_reg : STD_LOGIC_VECTOR(2 DOWNTO 0);
     SIGNAL reg_read_data1, reg_read_data2, reg_write_data : STD_LOGIC_VECTOR(31 DOWNTO 0);
-    SIGNAL alu_in1, alu_in2, alu_in1_nof, alu_in2_nof, alu_out, data_mem_in, data_mem_out : STD_LOGIC_VECTOR (31 DOWNTO 0);
+    SIGNAL alu_in1, alu_in2, alu_in1_nof, alu_in2_nof, alu_out, data_mem_in, data_mem_out, alu_or_in_port : STD_LOGIC_VECTOR (31 DOWNTO 0);
     SIGNAL data_mem_address : STD_LOGIC_VECTOR (19 DOWNTO 0);
     SIGNAL immidiate_value : STD_LOGIC_VECTOR (15 DOWNTO 0);
     SIGNAL immidiate_alu_in : STD_LOGIC_VECTOR (31 DOWNTO 0);
@@ -166,9 +166,9 @@ ARCHITECTURE ArchProcessor OF Processor IS
     SIGNAL instructon_selector : STD_LOGIC_VECTOR(1 DOWNTO 0);
     SIGNAL pc_enable : STD_LOGIC := '0';
     SIGNAL Op1_Forward, Op2_Forward : STD_LOGIC_VECTOR(1 DOWNTO 0);
-    signal first_positive: std_logic:= '0';
     signal if_id_flush: std_logic;
     signal pop_use: std_logic;
+    signal pc_next: std_logic_vector(31 downto 0);
 
 
     --swap
@@ -204,6 +204,8 @@ BEGIN
     u15 : mux4 PORT MAP(alu_in2_nof, ex_mem_reg(66 DOWNTO 35), reg_write_data, zero_vector32, Op2_Forward, alu_in2);
     u16 : SP_Circuit PORT MAP(clk, rst, ex_mem_reg(69), ex_mem_reg(68), sp);
     u17 : mux2 GENERIC MAP(20) PORT MAP(ex_mem_reg(22 DOWNTO 3), sp(19 DOWNTO 0), ex_mem_reg(69), data_mem_address);
+    u18 : mux2 PORT MAP(ex_mem_reg(66 DOWNTO 35), pc_next, ex_mem_reg(75), data_mem_in);
+    u19 : mux2 PORT MAP(alu_out, in_port, id_ex_reg(82), alu_or_in_port);
     --connections
     branch_sel <= id_ex_reg(72) OR (id_ex_reg(73) AND CCR(0)) OR mem_wb_reg(69);
 
@@ -215,9 +217,6 @@ BEGIN
     immidiate_alu_in <= zero_vector16 & id_ex_reg(131 DOWNTO 116) WHEN (id_ex_reg(129) = '0') ELSE
         one_vector16 & immidiate_value;
 
-    data_mem_in <= ex_mem_reg(66 DOWNTO 35);
-    -- data_mem_address <= ex_mem_reg(22 DOWNTO 3);
-
     write_reg <= mem_wb_reg(2 DOWNTO 0);
 
     --Out Instruction
@@ -228,14 +227,17 @@ BEGIN
     pop_use <= id_ex_reg(74) and id_ex_reg(76) and id_ex_reg(79) and id_ex_reg(80);
 
     --pc enable                                          Call instructions
-    pc_enable <= '0' when pop_use = '1' or swapStall = '1' or id_ex_reg(83) = '1' or ex_mem_reg(75) = '1' or first_positive = '0' else '1';
+    pc_enable <= '0' when pop_use = '1' or swapStall = '1' or id_ex_reg(83) = '1' or ex_mem_reg(75) = '1' else '1';
 
     --flush if/id
-    if_id_flush <= id_ex_reg(72) OR (id_ex_reg(73) AND CCR(0)) or ex_mem_reg(75) or pop_use;
+    if_id_flush <= id_ex_reg(72) OR (id_ex_reg(73) AND CCR(0)) or ex_mem_reg(75);
 
     --instruction selector
     insert_nop <= immidiate_flag OR id_ex_reg(83) OR ex_mem_reg(75);
     instructon_selector <= swapStall & insert_nop;
+
+    --memory stage small alu to increment the pc
+    pc_next <= STD_LOGIC_VECTOR(unsigned(ex_mem_reg(107 downto 76)) + 1);
 
     --register changes
     PROCESS (clk, rst) BEGIN
@@ -245,10 +247,8 @@ BEGIN
             id_ex_reg <= (OTHERS => '0');
             ex_mem_reg <= (OTHERS => '0');
             mem_wb_reg <= (OTHERS => '0');
-            first_positive <= '0';
 
         ELSIF rising_edge(clk) THEN
-            first_positive <= '1';
             CCR <= CCR_next;
 
             IF immidiate_flag = '0' THEN
@@ -257,16 +257,19 @@ BEGIN
                 immidiate_flag <= '0';
             END IF;
 
-            IF if_id_flush = '0' THEN
-                if_id_reg(48 DOWNTO 0) <= swapStall & pc & instruction;
-                id_ex_reg(138 DOWNTO 0) <= if_id_reg(6 DOWNTO 1) & if_id_reg(48) & immidiate_value & if_id_reg(47 DOWNTO 16) & signal_vector & reg_read_data1 & reg_read_data2 & if_id_reg(9 DOWNTO 7);
-            ELSE
+            IF if_id_flush = '1' THEN
                 if_id_reg(48 DOWNTO 0) <= (OTHERS => '0');
                 id_ex_reg(138 DOWNTO 0) <= (OTHERS => '0');
+            ELSif pop_use = '1' then
+                if_id_reg(48 DOWNTO 0) <= swapStall & pc & instruction;
+                id_ex_reg(138 DOWNTO 0) <= (OTHERS => '0');
+            ELSE
+                if_id_reg(48 DOWNTO 0) <= swapStall & pc & instruction;
+                id_ex_reg(138 DOWNTO 0) <= if_id_reg(6 DOWNTO 1) & if_id_reg(48) & immidiate_value & if_id_reg(47 DOWNTO 16) & signal_vector & reg_read_data1 & reg_read_data2 & if_id_reg(9 DOWNTO 7);
             END IF;
 
-            ex_mem_reg(107 DOWNTO 0) <= id_ex_reg(115 DOWNTO 84) & id_ex_reg(83) & id_ex_reg(81 DOWNTO 74) & alu_out & alu_in2 & id_ex_reg(2 DOWNTO 0);
-            mem_wb_reg(69 DOWNTO 0) <= ex_mem_reg(75) & ex_mem_reg(73 DOWNTO 72) & data_mem_out & data_mem_in & ex_mem_reg(2 DOWNTO 0);
+            ex_mem_reg(107 DOWNTO 0) <= id_ex_reg(115 DOWNTO 84) & id_ex_reg(83) & id_ex_reg(81 DOWNTO 74) & alu_or_in_port & alu_in2 & id_ex_reg(2 DOWNTO 0);
+            mem_wb_reg(69 DOWNTO 0) <= ex_mem_reg(75) & ex_mem_reg(73 DOWNTO 72) & data_mem_out & ex_mem_reg(66 DOWNTO 35) & ex_mem_reg(2 DOWNTO 0);
         END IF;
     END PROCESS;
 END ArchProcessor;

@@ -79,7 +79,7 @@ for (const line of inputFile) {
   let instBts = '';
 
   if (inst === '.ORG') {
-    while (lineNumber < Number(operands - 1)) {
+    while (lineNumber < Number(operands)) {
       InstructionMemory.write(
         BITS_3 + BITS_3 + BITS_3 + BITS_3 + BITS_3 + '0\n'
       );
