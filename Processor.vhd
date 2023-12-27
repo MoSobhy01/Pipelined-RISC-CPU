@@ -166,8 +166,11 @@ ARCHITECTURE ArchProcessor OF Processor IS
     SIGNAL instructon_selector : STD_LOGIC_VECTOR(1 DOWNTO 0);
     SIGNAL pc_enable : STD_LOGIC := '0';
     SIGNAL Op1_Forward, Op2_Forward : STD_LOGIC_VECTOR(1 DOWNTO 0);
-    SIGNAL first_positive : STD_LOGIC := '0';
-    SIGNAL if_id_flush : STD_LOGIC;
+    signal first_positive: std_logic:= '0';
+    signal if_id_flush: std_logic;
+    signal pop_use: std_logic;
+
+
     --swap
     SIGNAL swapStall : STD_LOGIC;
     SIGNAL swap_ins : STD_LOGIC_VECTOR(15 DOWNTO 0);
@@ -221,12 +224,14 @@ BEGIN
     out_port <= data_mem_in WHEN ex_mem_reg(74) = '1' ELSE
         (OTHERS => 'Z');
 
-    --pc enable
-    pc_enable <= '0' WHEN swapStall = '1' OR id_ex_reg(83) = '1' OR ex_mem_reg(75) = '1' OR first_positive = '0' ELSE
-        '1';
+    --pop use
+    pop_use <= id_ex_reg(74) and id_ex_reg(76) and id_ex_reg(79) and id_ex_reg(80);
+
+    --pc enable                                          Call instructions
+    pc_enable <= '0' when pop_use = '1' or swapStall = '1' or id_ex_reg(83) = '1' or ex_mem_reg(75) = '1' or first_positive = '0' else '1';
 
     --flush if/id
-    if_id_flush <= id_ex_reg(72) OR (id_ex_reg(73) AND CCR(0)) OR ex_mem_reg(75);
+    if_id_flush <= id_ex_reg(72) OR (id_ex_reg(73) AND CCR(0)) or ex_mem_reg(75) or pop_use;
 
     --instruction selector
     insert_nop <= immidiate_flag OR id_ex_reg(83) OR ex_mem_reg(75);

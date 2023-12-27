@@ -95,8 +95,8 @@ begin
   variable BITSET_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "11011000000001000";
   
   -- SP Operations
-  variable PUSH_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0):= "00000000110000001";
-  variable POP_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000001010011001";
+  variable PUSH_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0):= "00000000110000000";
+  variable POP_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "00000001010011000";
 
   -- Memory Operations
   variable LDM_INST: std_logic_vector(OUTPUT_WIDTH-1 downto 0) := "01011000000001000";

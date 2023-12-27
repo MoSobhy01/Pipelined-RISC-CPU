@@ -32,7 +32,7 @@ BEGIN
                 instrMem(i) <= (OTHERS => '0');
             END LOOP;
 
-            file_open(memfile, "D:/Study/ARC_Project/Pipelined-RISC-CPU/instructionMem.txt", read_mode);
+            file_open(memfile, "./instructionMem.txt", read_mode);
             WHILE((i < 2048) AND (NOT endfile(memfile))) LOOP
                 readline(memfile, line_buffer);
                 read(line_buffer, data);
